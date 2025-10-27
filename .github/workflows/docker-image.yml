@@ -8,64 +8,50 @@ on:
 
 jobs:
   build:
-    name: 🧱 Build and Push Docker Image
     runs-on: ubuntu-latest
 
     steps:
       - name: 🧩 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🧾 Validate Dockerfile
+      - name: 🧾 Check for Dockerfile
         run: |
           echo "🔍 Checking for Dockerfile..."
           if [ ! -f Dockerfile ]; then
-            echo "❌ Dockerfile not found in repository root!"
+            echo "❌ Dockerfile not found!"
             ls -la
             exit 1
           fi
-          echo "✅ Dockerfile found successfully."
+          echo "✅ Dockerfile found."
 
-      - name: 🧹 Clean Docker cache
-        run: docker system prune -af || true
-
-      - name: 🔐 Log in to Docker Hub
+      - name: 🔐 Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # אם אתה רוצה לדחוף ל-GitHub Container Registry (ghcr.io)
-      # החלף את ה-action הזה ב:
-      # uses: docker/login-action@v3
-      # with:
-      #   registry: ghcr.io
-      #   username: ${{ github.actor }}
-      #   password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 🐳 Build and tag Docker image
-        env:
-          DOCKER_BUILDKIT: 1
+      - name: 🐳 Build Docker image
         run: |
           IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/my-image
-          TAG=$(date +%Y%m%d%H%M)
-          echo "🏷️ Building $IMAGE_NAME:$TAG"
-          docker build --progress=plain --file Dockerfile --tag $IMAGE_NAME:$TAG .
-          echo "✅ Build successful."
+          TAG=latest
+          echo "🏗️ Building image: $IMAGE_NAME:$TAG"
+          docker build -t $IMAGE_NAME:$TAG .
+          echo "✅ Build completed."
 
       - name: 🧪 Test Docker image
         run: |
           IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/my-image
-          TAG=$(docker images --format '{{.Tag}}' | head -n 1)
-          echo "🧪 Running image test..."
-          docker run --rm $IMAGE_NAME:$TAG echo "✅ Image is runnable!"
+          TAG=latest
+          echo "🧪 Testing image..."
+          docker run --rm $IMAGE_NAME:$TAG echo "✅ Image runs successfully."
 
       - name: 🚀 Push Docker image to Docker Hub
         run: |
           IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/my-image
-          TAG=$(docker images --format '{{.Tag}}' | head -n 1)
-          echo "📤 Pushing $IMAGE_NAME:$TAG"
+          TAG=latest
+          echo "📤 Pushing image to Docker Hub..."
           docker push $IMAGE_NAME:$TAG
-          echo "✅ Image pushed successfully."
+          echo "✅ Push completed successfully."
 
       - name: 📦 List Docker images
         run: docker images
